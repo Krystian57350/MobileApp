@@ -1,6 +1,6 @@
 // Raport wydatków — panel w aplikacji + pobieranie PDF (obliczenia robi moduł Pythona przez api.php)
 (function () {
-    const STATUS = { complete: 'pełny', in_progress: 'w toku', partial_start: 'niepełny' };
+    const STATUS = { complete: 'pełny', in_progress: 'w toku', partial_start: 'niepełny', partial_range: 'niepełny' };
     const section = el('reportSection');
     const out = el('repOutput');
     const msg = el('repMessage');
@@ -15,19 +15,16 @@
         msg.classList.toggle('error', !!isError);
     }
 
-    // Zakres dat z wyboru "Zakres": ostatnie N miesięcy / od początku / własny
+    // Stały zakres: ostatnie 12 miesięcy.
     function getRange() {
-        const v = el('repRange').value;
         const today = new Date();
-        if (v === 'custom') return { from: el('repFrom').value, to: el('repTo').value };
-        if (v === 'all') return { from: '', to: '' };
-        const start = new Date(today.getFullYear(), today.getMonth() - parseInt(v, 10), 1);
+        const start = new Date(today.getFullYear(), today.getMonth() - 12, 1);
         return { from: iso(start), to: iso(today) };
     }
 
     function params() {
         const r = getRange();
-        return { granularity: el('repGran').value, from: r.from, to: r.to };
+        return { granularity: 'month', from: r.from, to: r.to };
     }
 
     function card(label, value, hint) {
@@ -128,20 +125,53 @@
             return;
         }
         const p = params();
-        if (el('repRange').value === 'custom' && p.from && p.to && p.from > p.to) {
-            showMessage('Data początkowa jest późniejsza niż końcowa.', true);
-            return;
-        }
         showMessage('Generowanie raportu…');
         out.innerHTML = '';
-        const res = await requestAPI({ action: 'report_data', ...p });
-        if (res.success) renderReport(res.report);
-        else showMessage(res.message || 'Nie udało się wygenerować raportu.', true);
+        try {
+            const res = await requestAPI({ action: 'report_data', ...p });
+            if (res.success) renderReport(res.report);
+            else showMessage(res.message || 'Nie udało się wygenerować raportu.', true);
+        } catch (error) {
+            console.error('Błąd generowania raportu:', error);
+            showMessage(error.message || 'Nie udało się wygenerować raportu.', true);
+        }
     }
 
     async function downloadPdf() {
         if (STATIC_MODE) {
-            window.print();
+            if (typeof html2pdf !== 'function') {
+                showMessage('Eksport PDF jest niedostępny. Odśwież stronę i spróbuj ponownie.', true);
+                return;
+            }
+            showMessage('Generowanie PDF…');
+            try {
+                const filename = `raport_wydatkow_${iso(new Date())}.pdf`;
+                const blob = await html2pdf().set({
+                    margin: 10,
+                    image: { type: 'jpeg', quality: 0.98 },
+                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                    pagebreak: { mode: ['css', 'legacy'] },
+                    html2canvas: {
+                        scale: 2,
+                        useCORS: true,
+                        backgroundColor: '#ffffff',
+                        ignoreElements: element => element.classList &&
+                            (element.classList.contains('report-controls') || element.id === 'repMessage')
+                    }
+                }).from(section).outputPdf('blob');
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
+                showMessage('');
+            } catch (error) {
+                console.error('Błąd generowania PDF:', error);
+                showMessage('Nie udało się wygenerować pliku PDF.', true);
+            }
             return;
         }
         showMessage('Generowanie PDF…');
@@ -169,26 +199,11 @@
     el('reportToggleBtn').addEventListener('click', () => {
         const nowVisible = section.classList.toggle("hidden") === false;
         if (nowVisible) {
-            if (STATIC_MODE) {
-                el('repGran').closest('label').hidden = true;
-                el('repRange').closest('label').hidden = true;
-                el('repCustom').classList.add('hidden');
-                el('repGenerateBtn').textContent = 'Odśwież';
-                el('repPdfBtn').textContent = 'Drukuj / zapisz PDF';
-            }
             section.scrollIntoView({ behavior: 'smooth' });
             generate();
         }
     });
-    el('repRange').addEventListener('change', () => el('repCustom').classList.toggle('hidden', el('repRange').value !== 'custom'));
-    el('repGenerateBtn').addEventListener('click', generate);
     el('repPdfBtn').addEventListener('click', downloadPdf);
-    el('repGran').addEventListener('change', generate);
     el('logoutBtn').addEventListener('click', () => { out.innerHTML = ''; showMessage(''); section.classList.add('hidden'); });
 
-    if (typeof flatpickr !== 'undefined') {
-        const opts = { dateFormat: 'Y-m-d', allowInput: true, disableMobile: true };
-        flatpickr(el('repFrom'), opts);
-        flatpickr(el('repTo'), opts);
-    }
 })();

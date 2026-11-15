@@ -96,6 +96,23 @@ class ReportTest(unittest.TestCase):
         r = build_report(self.subs(), "quarter", date(2025, 10, 1), date(2026, 1, 31), self.TODAY)
         self.assertEqual([b["label"] for b in r["buckets"]], ["Q4 2025", "Q1 2026"])
 
+    def test_custom_range_clips_partial_month_quarter_and_year(self):
+        subscription = sub("Monthly", 10, start=date(2025, 1, 1), nxt=date(2025, 1, 10))
+        date_from, date_to, today = date(2025, 2, 15), date(2025, 5, 15), date(2025, 6, 20)
+        expected = {
+            "month": ([0, 10, 10, 10], ["partial_range", "complete", "complete", "partial_range"], 2),
+            "quarter": ([10, 20], ["partial_range", "partial_range"], 0),
+            "year": ([30], ["partial_range"], 0),
+        }
+
+        for granularity, (totals, statuses, complete_periods) in expected.items():
+            with self.subTest(granularity=granularity):
+                report = build_report([subscription], granularity, date_from, date_to, today)
+                self.assertEqual([b["total"] for b in report["buckets"]], totals)
+                self.assertEqual([b["status"] for b in report["buckets"]], statuses)
+                self.assertEqual(report["stats"]["n"], complete_periods)
+                self.assertEqual(report["summary"]["total_range"], 30)
+
     def test_no_subscriptions(self):
         r = build_report([], "month", today=self.TODAY)
         self.assertEqual(r["buckets"], []); self.assertTrue(r["warnings"])

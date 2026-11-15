@@ -20,7 +20,8 @@ pdfmetrics.registerFont(TTFont("DejaVu-Bold", os.path.join(_FONT_DIR, "DejaVuSan
 pdfmetrics.registerFontFamily("DejaVu", normal="DejaVu", bold="DejaVu-Bold")
 
 BLUE = colors.HexColor("#2563eb")
-STATUS = {"complete": "pełny", "in_progress": "w toku", "partial_start": "niepełny"}
+STATUS = {"complete": "pełny", "in_progress": "w toku", "partial_start": "niepełny",
+          "partial_range": "niepełny"}
 
 
 def _styles():

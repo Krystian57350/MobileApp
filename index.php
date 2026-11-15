@@ -124,29 +124,6 @@
     <section id="reportSection" class="report hidden">
       <h2>Raport wydatków</h2>
       <div class="report-controls">
-        <label>Zestawienie
-          <select id="repGran">
-            <option value="month">Miesięczne</option>
-            <option value="quarter">Kwartalne</option>
-            <option value="half">Półroczne</option>
-            <option value="year">Roczne</option>
-          </select>
-        </label>
-        <label>Zakres
-          <select id="repRange">
-            <option value="3">Ostatnie 3 miesiące</option>
-            <option value="6">Ostatnie 6 miesięcy</option>
-            <option value="12" selected>Ostatnie 12 miesięcy</option>
-            <option value="24">Ostatnie 24 miesiące</option>
-            <option value="all">Od początku</option>
-            <option value="custom">Własny zakres…</option>
-          </select>
-        </label>
-        <span id="repCustom" class="report-custom hidden">
-          <label>Od <input id="repFrom" type="text" autocomplete="off" placeholder="rrrr-mm-dd"></label>
-          <label>Do <input id="repTo" type="text" autocomplete="off" placeholder="rrrr-mm-dd"></label>
-        </span>
-        <button type="button" id="repGenerateBtn">Generuj</button>
         <button type="button" id="repPdfBtn" class="pdf">⬇ Pobierz PDF</button>
       </div>
       <div id="repMessage" class="report-msg hidden"></div>

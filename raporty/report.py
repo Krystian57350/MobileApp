@@ -38,14 +38,18 @@ def build_report(subs: List[Subscription], granularity: str,
     buckets = []
     prev = None
     for b in build_buckets(d_from, d_to, granularity):
-        in_b = [p for p in payments if b.start <= p.date <= b.end]
+        in_b = [p for p in payments if max(b.start, d_from) <= p.date <= min(b.end, d_to)]
         by_cat = defaultdict(float)
         for p in in_b:
             by_cat[p.category] += p.amount
-        if b.end >= today:
-            status = "in_progress"       # bieżący okres jeszcze trwa
-        elif b.start < tracking_start:
+        if b.start < tracking_start:
             status = "partial_start"     # okres zaczął się przed rozpoczęciem śledzenia
+        elif b.start < d_from or (b.end > d_to and d_to < today):
+            status = "partial_range"     # zakres obejmuje tylko część okresu
+        elif b.end >= today:
+            status = "in_progress"       # bieżący okres jeszcze trwa
+        elif b.end > d_to:
+            status = "partial_range"
         else:
             status = "complete"
         item = {"label": b.label, "start": b.start.isoformat(), "end": b.end.isoformat(),
@@ -62,16 +66,14 @@ def build_report(subs: List[Subscription], granularity: str,
     # puste okresy na początku (przed pierwszą płatnością) nic nie wnoszą - pomijamy
     while buckets and buckets[0]["status"] == "partial_start" and buckets[0]["total"] == 0:
         buckets.pop(0)
-    if buckets:
-        meta["date_from"] = buckets[0]["start"]
     if buckets and buckets[0]["status"] == "partial_start":
         buckets[0]["change_pct"] = None
 
     full = [b for b in buckets if b["complete"]]
     stats = describe([b["total"] for b in full], [b["label"] for b in full])
     if any(not b["complete"] for b in buckets):
-        stats["notes"].append("Okresy niepełne (trwający lub rozpoczęty przed pierwszą subskrypcją) "
-                              "są na wykresie, ale nie wchodzą do średniej i mediany.")
+        stats["notes"].append("Okresy niepełne (trwający, rozpoczęty przed pierwszą subskrypcją "
+                              "lub poza wybranym zakresem) są na wykresie, ale nie wchodzą do średniej i mediany.")
 
     active = [s for s in subs if s.active]
     monthly_now = sum(s.monthly_cost for s in active)
@@ -96,9 +98,8 @@ def build_report(subs: List[Subscription], granularity: str,
                   for k in sorted(set(cat_total) | set(cat_monthly), key=lambda c: -cat_total.get(c, 0))]
 
     in_range = defaultdict(float)
-    lo, hi = buckets[0]["start"], buckets[-1]["end"]
     for p in payments:
-        if lo <= p.date.isoformat() <= hi:
+        if d_from <= p.date <= d_to:
             in_range[p.sub_id] += p.amount
     ranked = sorted(active, key=lambda s: -s.monthly_cost)[:TOP_N_SUBSCRIPTIONS]
     subscriptions = [{"name": s.name, "category": s.category, "cost": s.cost, "period": s.period,
