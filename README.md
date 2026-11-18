@@ -1,5 +1,7 @@
 # MobileApp
 
+Dokumentacja znajduje się w osobnym pliku PDF
+
 ## Wersja GitHub Pages (bez PHP i MySQL)
 
 Repozytorium zawiera statyczną wersję aplikacji w `index.html`. Działa w przeglądarce bez XAMPP, PHP i bazy MySQL.
