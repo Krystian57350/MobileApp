@@ -4,13 +4,6 @@
 
 Repozytorium zawiera statyczną wersję aplikacji w `index.html`. Działa w przeglądarce bez XAMPP, PHP i bazy MySQL.
 
-### Publikacja
-
-1. Wypchnij pliki aplikacji do repozytorium GitHub.
-2. Otwórz **Settings → Pages**.
-3. W sekcji **Build and deployment** wybierz **Deploy from a branch**, następnie gałąź z aplikacją i folder **/(root)**.
-4. Zapisz ustawienia. Po zakończeniu publikacji GitHub pokaże adres strony.
-
 ### Dane i ograniczenia
 
 - Konta, kategorie i subskrypcje są zapisywane lokalnie w przeglądarce na danym urządzeniu. Nie są synchronizowane między przeglądarkami ani użytkownikami.
