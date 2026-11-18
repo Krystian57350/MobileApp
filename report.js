@@ -145,6 +145,7 @@
             }
             showMessage('Generowanie PDF…');
             try {
+                generateLocalReport();
                 const filename = `raport_wydatkow_${iso(new Date())}.pdf`;
                 const blob = await html2pdf().set({
                     margin: 10,

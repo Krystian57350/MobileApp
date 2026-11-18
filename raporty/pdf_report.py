@@ -80,6 +80,15 @@ def build_pdf(report: dict, charts: dict, username: str = "") -> bytes:
         f.append(Paragraph(f"⚠ {w}", S["small"]))
 
     if not report["buckets"]:
+        active = [s for s in report["subscriptions"] if s]
+        if active:
+            f.append(Paragraph("Aktywne subskrypcje", S["h2"]))
+            rows = [["Nazwa", "Kategoria", "Cena", "Miesięcznie", "Udział"]]
+            for s in active:
+                per = "rocznie" if s["period"] == "yearly" else "mies."
+                rows.append([Paragraph(s["name"], S["cell"]), Paragraph(s["category"], S["cell"]),
+                             f"{money(s['cost'])} / {per}", money(s["monthly_cost"]), pct(s["share"], False)])
+            f.append(_table(rows, [4.5 * cm, 3.5 * cm, 3.6 * cm, 3 * cm, 2.4 * cm], align_right_from=2))
         doc.build(f, onFirstPage=_footer, onLaterPages=_footer)
         return buf.getvalue()
 
@@ -117,7 +126,7 @@ def build_pdf(report: dict, charts: dict, username: str = "") -> bytes:
     f.append(KeepTogether(cat_block))
 
     if report["subscriptions"]:
-        f.append(Paragraph("Najdroższe subskrypcje", S["h2"]))
+        f.append(Paragraph("Aktywne subskrypcje", S["h2"]))
         rows = [["Nazwa", "Kategoria", "Cena", "Miesięcznie", "Udział"]]
         for s in report["subscriptions"]:
             per = "rocznie" if s["period"] == "yearly" else "mies."
